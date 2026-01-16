@@ -137,6 +137,17 @@ docker build -t github-daily-generator .
 | `/api/stats` | GET | Dashboard statistics |
 | `/api/github/orgs` | GET | User's GitHub organizations |
 | `/api/settings/organizations` | GET/POST | Saved org preferences |
+| `/api/debug/claude` | GET | Debug Claude CLI availability |
+
+### Debug Endpoint
+
+The `/api/debug/claude` endpoint performs comprehensive checks:
+1. `which claude` - Checks if claude is in PATH
+2. `claude --version` - Verifies CLI responds to version flag
+3. `claude --help` - Alternative check if version fails
+4. Simple prompt test - Sends a test prompt if CLI is found
+
+Returns detailed JSON with environment info, check results, and recommendations.
 
 ## Notes
 
