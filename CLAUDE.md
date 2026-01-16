@@ -81,8 +81,12 @@ GITHUB_SECRET=your_client_secret
 NEXTAUTH_SECRET=your_secret
 NEXTAUTH_URL=http://localhost:3000
 
-# Claude CLI (required for AI-powered report generation)
+# Claude CLI Authentication (one of the following):
+# Option 1: API Key
 ANTHROPIC_API_KEY=sk-ant-...  # Your Anthropic API key
+
+# Option 2: OAuth/Subscription - mount credentials volume in Docker
+# Run 'claude login' locally, then mount ~/.claude to /home/nextjs/.claude
 ```
 
 ## Database

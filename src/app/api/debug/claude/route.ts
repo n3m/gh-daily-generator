@@ -16,6 +16,11 @@ interface DebugResult {
       result: string | null;
       error: string | null;
     };
+    claudeCredentials: {
+      exists: boolean;
+      path: string;
+      files: string[] | null;
+    };
     claudeVersion: {
       success: boolean;
       exitCode: number | null;
@@ -159,6 +164,7 @@ export async function GET() {
     },
     checks: {
       whichClaude: { success: false, result: null, error: null },
+      claudeCredentials: { exists: false, path: "", files: null },
       claudeVersion: { success: false, exitCode: null, stdout: null, stderr: null, error: null },
       claudeHelp: { success: false, exitCode: null, stdout: null, stderr: null, error: null },
       simplePrompt: { success: false, exitCode: null, stdout: null, stderr: null, error: null, duration: null },
@@ -169,7 +175,16 @@ export async function GET() {
   // Check 1: which claude
   result.checks.whichClaude = await tryWhich();
 
-  // Check 2: claude --version
+  // Check 2: Claude credentials directory
+  const claudeConfigPath = `${process.env.HOME}/.claude`;
+  result.checks.claudeCredentials.path = claudeConfigPath;
+  const lsResult = await runCommand("ls", ["-la", claudeConfigPath], { timeout: 5000 });
+  if (lsResult.success && lsResult.stdout) {
+    result.checks.claudeCredentials.exists = true;
+    result.checks.claudeCredentials.files = lsResult.stdout.split("\n").slice(1).filter(Boolean);
+  }
+
+  // Check 3: claude --version
   const versionResult = await runCommand("claude", ["--version"]);
   result.checks.claudeVersion = {
     success: versionResult.success,
@@ -253,13 +268,14 @@ export async function GET() {
     promptOutput.includes("not authenticated")
   ) {
     result.recommendations.push(
-      "Claude CLI is not authenticated. Set the ANTHROPIC_API_KEY environment variable."
+      "Claude CLI is not authenticated. You have two options:"
     );
-    if (!process.env.ANTHROPIC_API_KEY) {
-      result.recommendations.push(
-        "ANTHROPIC_API_KEY is not set. Add it to your environment variables in Coolify/Docker."
-      );
-    }
+    result.recommendations.push(
+      "Option 1 (API Key): Set the ANTHROPIC_API_KEY environment variable"
+    );
+    result.recommendations.push(
+      "Option 2 (OAuth/Subscription): Run 'claude login' locally, then copy ~/.claude/ credentials to the Docker container or mount as volume"
+    );
   }
 
   return NextResponse.json(result, { status: 200 });
