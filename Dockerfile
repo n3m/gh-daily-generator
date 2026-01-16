@@ -34,8 +34,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+# Install Claude Code CLI globally
+RUN npm install -g @anthropic-ai/claude-code
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Create Claude config directory for the user
+RUN mkdir -p /home/nextjs/.claude && chown -R nextjs:nodejs /home/nextjs
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
