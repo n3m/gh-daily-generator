@@ -1,0 +1,199 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  githubId      String    @unique
+  accessToken   String    // GitHub OAuth token
+
+  accounts      Account[]
+  sessions      Session[]
+  organizations UserOrganization[]
+  dailyReports  DailyReport[]
+  weeklyReports WeeklyReport[]
+  jobs          Job[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  githubId  Int      @unique
+  login     String   // org username
+  name      String?
+  avatarUrl String?
+
+  users     UserOrganization[]
+  repos     Repository[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserOrganization {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  isActive       Boolean      @default(true)
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+model Repository {
+  id             String       @id @default(cuid())
+  githubId       Int          @unique
+  name           String
+  fullName       String
+  organizationId String
+  isActive       Boolean      @default(true)
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  commits        Commit[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Commit {
+  id            String     @id @default(cuid())
+  sha           String     @unique
+  message       String
+  authorEmail   String
+  authorName    String
+  committedAt   DateTime
+
+  repositoryId  String
+  repository    Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  additions     Int?
+  deletions     Int?
+  filesChanged  String[]
+
+  dailyReports  CommitOnDailyReport[]
+
+  createdAt     DateTime   @default(now())
+}
+
+model CommitOnDailyReport {
+  commitId      String
+  dailyReportId String
+
+  commit        Commit      @relation(fields: [commitId], references: [id], onDelete: Cascade)
+  dailyReport   DailyReport @relation(fields: [dailyReportId], references: [id], onDelete: Cascade)
+
+  @@id([commitId, dailyReportId])
+}
+
+model DailyReport {
+  id             String   @id @default(cuid())
+  date           DateTime @db.Date
+  content        String   @db.Text
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  commits        CommitOnDailyReport[]
+  weeklyReportId String?
+  weeklyReport   WeeklyReport? @relation(fields: [weeklyReportId], references: [id])
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+model WeeklyReport {
+  id           String   @id @default(cuid())
+  weekStart    DateTime @db.Date
+  weekEnd      DateTime @db.Date
+  content      String   @db.Text
+
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dailyReports DailyReport[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, weekStart])
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  type        JobType
+  status      JobStatus @default(PENDING)
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  payload     Json
+  result      Json?
+  error       String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+enum JobType {
+  GENERATE_DAILY
+  GENERATE_WEEKLY
+  SYNC_COMMITS
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
