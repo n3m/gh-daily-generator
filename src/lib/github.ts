@@ -105,8 +105,16 @@ export async function getRepoCommits(
         page,
       });
 
-      commits.push(
-        ...data.map((commit) => ({
+      const filteredCommits = data
+        // Filter out merge commits
+        .filter((commit) => {
+          const message = commit.commit.message.toLowerCase();
+          return (
+            !message.startsWith("merge pull request") &&
+            !message.startsWith("merge branch")
+          );
+        })
+        .map((commit) => ({
           sha: commit.sha,
           commit: {
             message: commit.commit.message,
@@ -116,8 +124,9 @@ export async function getRepoCommits(
               date: commit.commit.author?.date || new Date().toISOString(),
             },
           },
-        }))
-      );
+        }));
+
+      commits.push(...filteredCommits);
 
       if (data.length < perPage) break;
       page++;
