@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { createGitHubClient, getOrgRepos, getRepoCommits } from "@/lib/github";
 import { spawnClaudeAgent, isClaudeAvailable } from "@/lib/claude-sdk";
 import { buildDailyPrompt, CommitsByRepo } from "@/lib/prompts";
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     // Get all repos in the organization
     const repos = await getOrgRepos(client, organization);
 
-    const dailys: { date: string; content: string }[] = [];
+    const dailys: { id: string; date: string; content: string }[] = [];
 
     for (const date of dates) {
       // Calculate date range (full day)
@@ -108,7 +109,25 @@ export async function POST(request: Request) {
         }
       }
 
-      dailys.push({ date, content });
+      // Save to database (upsert to avoid duplicates)
+      const savedDaily = await prisma.dailyReport.upsert({
+        where: {
+          userId_date: {
+            userId: session.user.id,
+            date: new Date(date),
+          },
+        },
+        update: {
+          content,
+        },
+        create: {
+          userId: session.user.id,
+          date: new Date(date),
+          content,
+        },
+      });
+
+      dailys.push({ id: savedDaily.id, date, content });
     }
 
     return NextResponse.json({ dailys });
