@@ -219,7 +219,7 @@ export async function GET() {
       `Current PATH: ${result.environment.PATH}`
     );
     result.recommendations.push(
-      "For Docker: ensure PATH includes /home/nextjs/.claude/local/bin"
+      "For Docker: ensure PATH includes /home/nextjs/.local/bin (Claude CLI installs to ~/.local/bin)"
     );
   }
 

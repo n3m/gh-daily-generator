@@ -50,8 +50,8 @@ ENV HOME=/home/nextjs
 # Install Claude CLI and verify installation
 RUN curl -fsSL https://claude.ai/install.sh | bash \
     && echo "Claude CLI installed, verifying..." \
-    && ls -la /home/nextjs/.claude/local/bin/ || true \
-    && /home/nextjs/.claude/local/bin/claude --version || echo "Warning: claude --version failed"
+    && ls -la /home/nextjs/.local/bin/ || true \
+    && /home/nextjs/.local/bin/claude --version || echo "Warning: claude --version failed"
 
 # Switch back to root to copy files
 USER root
@@ -72,7 +72,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 # Add Claude CLI to PATH for nextjs user
-ENV PATH="/home/nextjs/.claude/local/bin:${PATH}"
+ENV PATH="/home/nextjs/.local/bin:${PATH}"
 ENV HOME=/home/nextjs
 
 EXPOSE 3000
