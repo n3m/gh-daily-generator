@@ -34,17 +34,22 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install dependencies needed for Claude Code CLI installer
+# Install dependencies needed for Claude Code CLI
 RUN apk add --no-cache curl bash
-
-# Install Claude Code CLI using official installer
-RUN curl -fsSL https://claude.ai/install.sh | bash
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Create Claude config directory for the user
-RUN mkdir -p /home/nextjs/.claude && chown -R nextjs:nodejs /home/nextjs
+# Create home directory and install Claude CLI as nextjs user
+RUN mkdir -p /home/nextjs && chown -R nextjs:nodejs /home/nextjs
+
+# Install Claude Code CLI as nextjs user
+USER nextjs
+ENV HOME=/home/nextjs
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Switch back to root to copy files
+USER root
 
 # Copy necessary files
 COPY --from=builder /app/public ./public
@@ -59,10 +64,11 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Add Claude CLI to PATH
-ENV PATH="/root/.claude/local/bin:${PATH}"
-
 USER nextjs
+
+# Add Claude CLI to PATH for nextjs user
+ENV PATH="/home/nextjs/.claude/local/bin:${PATH}"
+ENV HOME=/home/nextjs
 
 EXPOSE 3000
 

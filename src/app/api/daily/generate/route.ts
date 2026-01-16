@@ -89,16 +89,20 @@ export async function POST(request: Request) {
 
         // Check if Claude CLI is available
         const claudeAvailable = await isClaudeAvailable();
+        console.log(`[Daily Generate] Claude CLI available: ${claudeAvailable}`);
 
         if (claudeAvailable) {
           try {
+            console.log(`[Daily Generate] Calling Claude CLI for ${date}...`);
             content = await spawnClaudeAgent(prompt, { timeout: 120000 });
+            console.log(`[Daily Generate] Claude CLI response received`);
           } catch (error) {
-            console.error("Claude CLI error:", error);
+            console.error("[Daily Generate] Claude CLI error:", error);
             // Fallback to simple summary
             content = generateFallbackSummary(commitsByRepo, date);
           }
         } else {
+          console.log("[Daily Generate] Claude CLI not available, using fallback");
           // Fallback if Claude CLI not available
           content = generateFallbackSummary(commitsByRepo, date);
         }
