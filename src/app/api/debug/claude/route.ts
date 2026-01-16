@@ -9,6 +9,7 @@ interface DebugResult {
     USER: string | undefined;
     NODE_ENV: string | undefined;
     ANTHROPIC_API_KEY: string | undefined;
+    CLAUDE_CODE_OAUTH_TOKEN: string | undefined;
   };
   checks: {
     whichClaude: {
@@ -161,6 +162,9 @@ export async function GET() {
       ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
         ? `${process.env.ANTHROPIC_API_KEY.substring(0, 10)}...`
         : undefined,
+      CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN
+        ? `${process.env.CLAUDE_CODE_OAUTH_TOKEN.substring(0, 10)}...`
+        : undefined,
     },
     checks: {
       whichClaude: { success: false, result: null, error: null },
@@ -271,11 +275,17 @@ export async function GET() {
       "Claude CLI is not authenticated. You have two options:"
     );
     result.recommendations.push(
-      "Option 1 (API Key): Set the ANTHROPIC_API_KEY environment variable"
+      "Option 1 (OAuth Token - Recommended for Max subscription): Run 'claude setup-token' locally, then set CLAUDE_CODE_OAUTH_TOKEN env var"
     );
     result.recommendations.push(
-      "Option 2 (OAuth/Subscription): Run 'claude login' locally, then copy ~/.claude/ credentials to the Docker container or mount as volume"
+      "Option 2 (API Key): Set the ANTHROPIC_API_KEY environment variable"
     );
+
+    if (!process.env.CLAUDE_CODE_OAUTH_TOKEN && !process.env.ANTHROPIC_API_KEY) {
+      result.recommendations.push(
+        "Neither CLAUDE_CODE_OAUTH_TOKEN nor ANTHROPIC_API_KEY is set. Add one to your environment."
+      );
+    }
   }
 
   return NextResponse.json(result, { status: 200 });

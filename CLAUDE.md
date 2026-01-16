@@ -82,11 +82,12 @@ NEXTAUTH_SECRET=your_secret
 NEXTAUTH_URL=http://localhost:3000
 
 # Claude CLI Authentication (one of the following):
-# Option 1: API Key
-ANTHROPIC_API_KEY=sk-ant-...  # Your Anthropic API key
+# Option 1: OAuth Token (Recommended for Max subscription)
+# Run 'claude setup-token' locally to generate, then set:
+CLAUDE_CODE_OAUTH_TOKEN=your_oauth_token_here
 
-# Option 2: OAuth/Subscription - mount credentials volume in Docker
-# Run 'claude login' locally, then mount ~/.claude to /home/nextjs/.claude
+# Option 2: API Key (for API billing)
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ## Database
