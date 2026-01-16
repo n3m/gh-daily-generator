@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, RefreshCw, Check } from "lucide-react";
+import { Building2, RefreshCw, Check, Save } from "lucide-react";
 import { toast } from "sonner";
 
 interface Organization {
@@ -20,14 +20,24 @@ interface Organization {
   description: string | null;
 }
 
+interface SavedOrganization {
+  id: number;
+  login: string;
+  name: string;
+  avatarUrl: string;
+}
+
 export default function SettingsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-  const [selectedOrgs, setSelectedOrgs] = useState<number[]>([]);
+  const [selectedOrgs, setSelectedOrgs] = useState<Organization[]>([]);
+  const [savedOrgs, setSavedOrgs] = useState<SavedOrganization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingSaved, setIsLoadingSaved] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchOrganizations();
+    fetchSavedOrganizations();
   }, []);
 
   const fetchOrganizations = async () => {
@@ -44,29 +54,75 @@ export default function SettingsPage() {
     }
   };
 
-  const toggleOrg = (orgId: number) => {
+  const fetchSavedOrganizations = async () => {
+    setIsLoadingSaved(true);
+    try {
+      const res = await fetch("/api/settings/organizations");
+      if (!res.ok) throw new Error("Failed to fetch saved organizations");
+      const data = await res.json();
+      setSavedOrgs(data.organizations || []);
+    } catch {
+      // Silent fail - no saved orgs yet
+    } finally {
+      setIsLoadingSaved(false);
+    }
+  };
+
+  // Initialize selected orgs from saved orgs when both are loaded
+  useEffect(() => {
+    if (!isLoading && !isLoadingSaved && organizations.length > 0) {
+      const savedIds = savedOrgs.map((o) => o.id);
+      const initialSelected = organizations.filter((o) =>
+        savedIds.includes(o.id)
+      );
+      setSelectedOrgs(initialSelected);
+    }
+  }, [isLoading, isLoadingSaved, organizations, savedOrgs]);
+
+  const toggleOrg = (org: Organization) => {
     setSelectedOrgs((prev) =>
-      prev.includes(orgId)
-        ? prev.filter((id) => id !== orgId)
-        : [...prev, orgId]
+      prev.find((o) => o.id === org.id)
+        ? prev.filter((o) => o.id !== org.id)
+        : [...prev, org]
     );
   };
 
-  const handleSync = async () => {
+  const handleSave = async () => {
     if (selectedOrgs.length === 0) {
       toast.error("Please select at least one organization");
       return;
     }
 
-    setIsSyncing(true);
+    setIsSaving(true);
     try {
-      // TODO: Implement sync API
-      toast.info("Sync coming soon!");
+      const res = await fetch("/api/settings/organizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizations: selectedOrgs }),
+      });
+
+      if (!res.ok) throw new Error("Failed to save");
+
+      toast.success("Organizations saved successfully");
+      fetchSavedOrganizations();
     } catch {
-      toast.error("Failed to sync");
+      toast.error("Failed to save organizations");
     } finally {
-      setIsSyncing(false);
+      setIsSaving(false);
     }
+  };
+
+  const hasChanges = () => {
+    const savedIds = new Set(savedOrgs.map((o) => o.id));
+    const selectedIds = new Set(selectedOrgs.map((o) => o.id));
+
+    if (savedIds.size !== selectedIds.size) return true;
+
+    for (const id of savedIds) {
+      if (!selectedIds.has(id)) return true;
+    }
+
+    return false;
   };
 
   return (
@@ -123,9 +179,9 @@ export default function SettingsPage() {
                 {organizations.map((org) => (
                   <button
                     key={org.id}
-                    onClick={() => toggleOrg(org.id)}
+                    onClick={() => toggleOrg(org)}
                     className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                      selectedOrgs.includes(org.id)
+                      selectedOrgs.find((o) => o.id === org.id)
                         ? "border-primary bg-primary/5"
                         : "border-border hover:bg-muted"
                     }`}
@@ -143,26 +199,30 @@ export default function SettingsPage() {
                         </p>
                       )}
                     </div>
-                    {selectedOrgs.includes(org.id) && (
+                    {selectedOrgs.find((o) => o.id === org.id) && (
                       <Check className="h-5 w-5 text-primary" />
                     )}
                   </button>
                 ))}
               </div>
-              <div className="mt-4 flex justify-end">
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  {selectedOrgs.length} organization
+                  {selectedOrgs.length !== 1 ? "s" : ""} selected
+                </p>
                 <Button
-                  onClick={handleSync}
-                  disabled={isSyncing || selectedOrgs.length === 0}
+                  onClick={handleSave}
+                  disabled={isSaving || selectedOrgs.length === 0 || !hasChanges()}
                 >
-                  {isSyncing ? (
+                  {isSaving ? (
                     <>
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing...
+                      Saving...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Save & Sync Commits
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Settings
                     </>
                   )}
                 </Button>

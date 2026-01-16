@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, CalendarDays, GitCommit, Zap } from "lucide-react";
 import Link from "next/link";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 
 interface Stats {
   dailysThisMonth: number;
@@ -139,9 +140,10 @@ export default function DashboardPage() {
             ) : stats?.recentDailys && stats.recentDailys.length > 0 ? (
               <div className="space-y-3">
                 {stats.recentDailys.map((daily) => (
-                  <div
+                  <Link
                     key={daily.id}
-                    className="flex items-start gap-4 rounded-lg border p-3"
+                    href={`/daily/${daily.id}`}
+                    className="flex items-start gap-4 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                       <Calendar className="h-5 w-5 text-primary" />
@@ -152,7 +154,7 @@ export default function DashboardPage() {
                         {daily.content}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
