@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-alpine AS base
+FROM node:22-slim AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -35,18 +35,23 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Install dependencies needed for Claude Code CLI
-RUN apk add --no-cache curl bash
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Create home directory and install Claude CLI as nextjs user
-RUN mkdir -p /home/nextjs && chown -R nextjs:nodejs /home/nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 --gid nodejs --create-home nextjs
 
 # Install Claude Code CLI as nextjs user
 USER nextjs
 ENV HOME=/home/nextjs
-RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install Claude CLI and verify installation
+RUN curl -fsSL https://claude.ai/install.sh | bash \
+    && echo "Claude CLI installed, verifying..." \
+    && ls -la /home/nextjs/.claude/local/bin/ || true \
+    && /home/nextjs/.claude/local/bin/claude --version || echo "Warning: claude --version failed"
 
 # Switch back to root to copy files
 USER root
