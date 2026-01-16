@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Calendar } from "lucide-react";
 
 export default async function LoginPage() {
@@ -18,7 +19,10 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="absolute right-4 top-4">
+        <ThemeSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground">
