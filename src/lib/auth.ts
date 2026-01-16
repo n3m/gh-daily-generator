@@ -18,16 +18,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
-      if (account) {
-        token.accessToken = account.access_token;
+    async session({ session, user }) {
+      // Fetch the access token from the Account table
+      const account = await prisma.account.findFirst({
+        where: {
+          userId: user.id,
+          provider: "github",
+        },
+        select: {
+          access_token: true,
+        },
+      });
+
+      if (account?.access_token) {
+        session.accessToken = account.access_token;
       }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token.accessToken) {
-        session.accessToken = token.accessToken as string;
-      }
+
+      session.user.id = user.id;
       return session;
     },
   },
@@ -40,5 +47,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
   }
 }
