@@ -80,6 +80,9 @@ GITHUB_SECRET=your_client_secret
 # NextAuth
 NEXTAUTH_SECRET=your_secret
 NEXTAUTH_URL=http://localhost:3000
+
+# Claude CLI (required for AI-powered report generation)
+ANTHROPIC_API_KEY=sk-ant-...  # Your Anthropic API key
 ```
 
 ## Database

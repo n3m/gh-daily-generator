@@ -8,6 +8,7 @@ interface DebugResult {
     HOME: string | undefined;
     USER: string | undefined;
     NODE_ENV: string | undefined;
+    ANTHROPIC_API_KEY: string | undefined;
   };
   checks: {
     whichClaude: {
@@ -152,6 +153,9 @@ export async function GET() {
       HOME: process.env.HOME,
       USER: process.env.USER,
       NODE_ENV: process.env.NODE_ENV,
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
+        ? `${process.env.ANTHROPIC_API_KEY.substring(0, 10)}...`
+        : undefined,
     },
     checks: {
       whichClaude: { success: false, result: null, error: null },
@@ -239,6 +243,23 @@ export async function GET() {
     result.recommendations.push(
       "Claude CLI timed out. This could be a network issue or the CLI is hanging."
     );
+  }
+
+  // Check for authentication issues
+  const promptOutput = result.checks.simplePrompt.stdout || "";
+  if (
+    promptOutput.includes("Invalid API key") ||
+    promptOutput.includes("/login") ||
+    promptOutput.includes("not authenticated")
+  ) {
+    result.recommendations.push(
+      "Claude CLI is not authenticated. Set the ANTHROPIC_API_KEY environment variable."
+    );
+    if (!process.env.ANTHROPIC_API_KEY) {
+      result.recommendations.push(
+        "ANTHROPIC_API_KEY is not set. Add it to your environment variables in Coolify/Docker."
+      );
+    }
   }
 
   return NextResponse.json(result, { status: 200 });
